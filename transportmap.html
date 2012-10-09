@@ -153,13 +153,13 @@
 			<h3>Источник данных</h3>
 			<select id="dspan" name="span">
 				<option value="1">Датчики</option>
-				<option value="2" >Метро Вход/Выход</option>
+				<option value="2" selected>Метро Вход/Выход</option>
 				<option value="3">Метро по типам </option>
 				<option value="4">МГТ</option>
 				<option value="5">Подмосковье</option>
-				<option value="6">Плотность (ЦИК)</option>
+				<!-- <option value="6">Плотность (ЦИК)</option> -->
 				<option value="7">ЦППК</option>
-				<option value="8" selected>Опрос</option>
+				<!-- <option value="8" >Опрос</option> -->
 			</select>
 		</section>
 		
@@ -174,18 +174,26 @@
 		<h3>Установить максимум (отображается красным)</h3>
 		<input type='text' id='maxvalInd1' onchange="max_change()" style="width:230px"> </br>
 		
-		<h3><label for="checkbox">Показать числа:</label> <input type='checkbox' id='numcheckbox' onchange="new_mode()" style="width:20px"> <br/></h3>
+
+
 		
-		<h3>Радиус:</h3> <input type='range' id='radius' min = "1" max = "50" value = "20" onchange="new_mode()">
-		<h3>Интенсивность:</h3> <input type='range' id='opacity' min = "1" max = "250" value = "200" onchange="new_mode()">
-		<h3>Надувать на:</h3> <input type='range' id='inflate' min = "0" max = "100" value = "0" onchange="new_mode()">
+		<h3 class='clicker' style="cursor:pointer; text-decoration: underline">Настройки</h3>
+		<div id="settings" style="display:none">
+			<h3>
+				<label for="checkbox">Показать числа:</label> <input type='checkbox' id='numcheckbox' onchange="new_mode()" style="width:20px"> <br/>
+			</h3>		
+			<h3>Радиус:</h3> <input type='range' id='radius' min = "1" max = "50" value = "20" onchange="new_mode()">
+			<h3>Интенсивность:</h3> <input type='range' id='opacity' min = "1" max = "250" value = "200" onchange="new_mode()">
+			<h3>Надувать на:</h3> <input type='range' id='inflate' min = "0" max = "100" value = "0" onchange="new_mode()">
+		</div>
+
 		
 		<section id = "timedim" hidden>
 			<label for="curtimeInd">Время:</label>
 			<input type='input' id='curtimeInd' disabled = 'true'> 
 			
-			<label for="sttimeInd">Начало:</label>
-			<input type='input' id='sttimeInd'> <br><br/>
+<!-- 			<label for="sttimeInd">Начало:</label>
+			<input type='input' id='sttimeInd'> <br><br/> -->
 			<div id="dyn_btn" class="btn">В динамике</div>
 			<section id = "dyn_pan" hidden>
 				<label for="span">Интервал (часы)</label>
@@ -222,13 +230,16 @@
 <script type="text/javascript" src="heatmap.js"></script>
 <script type="text/javascript" src="heatmap-openlayers.js"></script>
 <script type="text/javascript" src="heatmap-gmaps.js"></script>
-<script type="text/javascript" src="date.js"></script>
+<script type="text/javascript" src="http://datejs.googlecode.com/svn/trunk/build/date-ru-RU.js"></script>
 <script type="text/javascript" src="ExportMap.js"></script>
 <script type="text/javascript" src="http://code.jquery.com/jquery-1.8.0.min.js"></script>
 
 
 <script type="text/javascript">
 
+$('.clicker').click(function(){
+	$('div#settings').slideToggle()
+});
 
 jQuery.fn.center = function () {
     this.css("position","absolute");
@@ -332,11 +343,11 @@ function reqData() {
 				if (endDate.toString() != startDate.toString()) {
 					document.getElementById('timedim').hidden = false;
 					document.getElementById('curtimeInd').value = endDate.toString("HH:mm dddd");
-					document.getElementById('sttimeInd').value = startDate.toString("HH:mm dddd")
+					// document.getElementById('sttimeInd').value = startDate.toString("HH:mm dddd")
 				} else {
 					document.getElementById('timedim').hidden = true;
 				}
-				draw(endDate);
+				draw(endDate, false);
 				
 				
 			}
@@ -381,16 +392,16 @@ var files = evt.target.files;
 			document.getElementById('col_pan').hidden = false;
 			if (endDate.toString() != startDate.toString()) {	
 				document.getElementById('curtimeInd').hidden = false;
-				document.getElementById('sttimeInd').hidden = false;
+				// document.getElementById('sttimeInd').hidden = false;
 				document.getElementById('curtimeInd').value = endDate.toString("HH:mm dddd");
-				document.getElementById('sttimeInd').value = startDate.toString("HH:mm dddd")
+				// document.getElementById('sttimeInd').value = startDate.toString("HH:mm dddd")
 			} else {
 				document.getElementById('curtimeInd').hidden = true;
-				document.getElementById('sttimeInd').hidden = true;
+				// document.getElementById('sttimeInd').hidden = true;
 			}
 			
 			document.getElementById('maxvalInd1').value = maxval[document.getElementById('cspan1').selectedIndex];
-			draw(endDate);
+			draw(endDate, false);
 			
 		}
 	};
@@ -506,7 +517,7 @@ function CSVToArray( strData, strDelimiter ){
 	
 }
 
-function draw(dtime) {
+function draw(dtime, multi) {
 	if (!dtime) {
 		alert("Data is not defined");
 	}
@@ -542,14 +553,27 @@ function draw(dtime) {
 
 			}
 			else {
-
 				var sEl1 = document.getElementById('cspan1');
 				var fld1 = sEl1.selectedIndex;
-				
+				var temp_max_arr =[]; // all counts here
+				var temp_max = -9999999; // necessery max
 				for (var j in xtdata[i].x) {
-					mdata1.push({lonlat: xtdata[i].x[j].lonlat, count: xtdata[i].x[j].data[fld1]})
-				}
-				testData1={max: 0.8*document.getElementById('maxvalInd1').value, data: mdata1};
+					mdata1.push({
+						lonlat: xtdata[i].x[j].lonlat, 
+						count: xtdata[i].x[j].data[fld1]
+					});
+					if(temp_max < xtdata[i].x[j].data[fld1]) 
+						temp_max = xtdata[i].x[j].data[fld1];
+				
+					// temp_max_arr.push(xtdata[i].x[j].data[fld1])
+				};
+
+				if(multi) 
+					temp_max = document.getElementById('maxvalInd1').value
+				else 
+					document.getElementById('maxvalInd1').value = temp_max;
+
+				testData1={max: temp_max, data: mdata1};
 				heatmap1.setDataSet(testData1);
 								loaderh1.hide();
 				$('#heatmapArea').animate({
@@ -677,7 +701,7 @@ function new_mode() {
 }
 
 function startAnimation() {
-	var tstr= document.getElementById('sttimeInd').value;
+	// var tstr = document.getElementById('sttimeInd').value;
 	//startDate = Date.parse(tstr);
     if (animationTimer) {
         stopAnimation(true);
@@ -696,7 +720,7 @@ function startAnimation() {
             currentDate = currentDate.addHours(span);
 			document.getElementById('curtimeInd').value = currentDate.toString("HH:mm dddd");
 			document.getElementById('curtimeInd').style.fontsize = 20;
-			draw(currentDate)
+			draw(currentDate, true)
         } else {
             stopAnimation(true);
         }
@@ -713,14 +737,14 @@ function stopAnimation(reset) {
 }
 
 function timeUpdate (t) {
-	document.getElementById('sttimeInd').value = startDate.toString("HH:mm dddd");
+	// document.getElementById('sttimeInd').value = startDate.toString("HH:mm dddd");
 }
 
 function col_change () {
 	currentDate = null;
 	var fld = document.getElementById('cspan1').selectedIndex;
 	document.getElementById('maxvalInd1').value = maxval[fld];
-	draw(endDate);
+	draw(endDate, false);
 }
 
 
@@ -729,7 +753,7 @@ function col2_change () {
 	currentDate = null;
 	var fld = document.getElementById('cspan2').selectedIndex;
 	document.getElementById('maxvalInd2').value = maxval[fld];
-	draw(endDate);
+	draw(endDate, false);
 }
 
 function max_change () {
